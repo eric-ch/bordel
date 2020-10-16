@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -yq \
         screen bash-completion python3 iputils-ping guilt iasl quilt bin86 \
         bcc libsdl1.2-dev liburi-perl genisoimage policycoreutils unzip vim \
         sudo rpm curl libncurses5-dev libc6-dev-amd64 libelf-dev xorriso \
-        mtools dosfstools file byobu man ca-certificates locales && \
+        mtools dosfstools file byobu man ca-certificates locales rsync && \
         rm -rf /var/lib/apt-lists/* && \
         echo "dash dash/sh boolean false" | debconf-set-selections && \
         DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash

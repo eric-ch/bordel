@@ -40,34 +40,42 @@ EOF
 # Usage: stage_build_output source destination
 # Copy a build output from its deployed location (IMAGES_DIR) to the staging
 # directory (STAGING_DIR)
+# If stage_build_output ends with a '/' and is a directory, its content is
+# copied, without the '/' the directory will be copied to the destination path
+# (see rsync).
 stage_build_output() {
     local src="${IMAGES_DIR}/$1"
     local dst="${STAGING_DIR}/$2"
 
-    if [ $# -ne 2 -a ! -e "${src}" ]; then
+    if [ $# -ne 2 ] && [ ! -e "${src}" ]; then
         echo "${src} is not ready yet." >&2
         return 1
     fi
-    mkdir -p `dirname ${dst}`
-    echo "cp -ruv -L -T ${src} ${dst}"
-    cp -ruv -L -T "${src}" "${dst}"
+
+    mkdir -p $(dirname "${dst}")
+    rsync -rLptgoD "${src}" "${dst}"
 }
 
 # Usage: stage_build_output_by_suffix source suffix destination
 # Copy a set of build output matching *suffix from their deployed location
 # (IMAGES_DIR) to the staging directory (STAGING_DIR).
+# If stage_build_output ends with a '/' and is a directory, its content is
+# copied, without the '/' the directory will be copied to the destination path
+# (see rsync).
 stage_build_output_by_suffix() {
+    local src="${IMAGES_DIR}/$1"
     local dst="${STAGING_DIR}/$3"
 
-    mkdir -p "${dst}"
+    if [ $# -ne 3 ] && [ ! -e "${src}" ]; then
+        echo "${src} is not ready yet." >&2
+        return 1
+    fi
 
-    for f in "${IMAGES_DIR}/${1}"*"${2}"; do
-        if [ ! -e "${f}" ]; then
-            echo "${f} is not ready yet." >&2
-            break
-        fi
-        cp -ruv -L "${f}" "${dst}/`basename ${f}`"
-    done
+    mkdir -p "${dst}"
+    rsync -rLptgoD \
+        --include "*$2" \
+        --exclude "*" \
+            "${src}" "${dst}"
 }
 
 # Usage: stage_repository_entry machine image-format image-identifier source-image-name destination-image-name image-mount-point
@@ -160,14 +168,15 @@ stage_iso() {
     local isolinux_subdir="iso/isolinux"
     local image_name="xenclient-installer-image-${machine}"
     # Post do_deploy refactoring path (see IMAGE_LINK in xenclient-oe).
-    local iso_src_path="${machine}/${image_name}/iso"
+    local iso_src_path="${machine}/${image_name}/iso/"
     if [ ! -d "${IMAGES_DIR}/${iso_src_path}" ]; then
-        iso_src_path="${machine}/iso"
+        iso_src_path="${machine}/iso/"
     fi
 
     if ! command_sane "/sbin/mkfs.fat" "dosfstools" ||
        ! command_sane "mmd" "mtools" ||
-       ! command_sane "mcopy" "mtools"; then
+       ! command_sane "mcopy" "mtools" ||
+       ! command_sane "rsync" "rsync"; then
         return 1
     fi
 

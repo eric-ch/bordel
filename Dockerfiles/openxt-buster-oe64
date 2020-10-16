@@ -8,7 +8,7 @@ ARG GID=1000
 RUN sed -i "/buster-updates/d" /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -yq \
-        openssh-server openssl \
+        openssh-server openssl rsync \
         sed wget cvs subversion git-core coreutils \
         unzip texi2html texinfo docbook-utils gawk python-pysqlite2 diffstat \
         help2man make gcc build-essential g++ desktop-file-utils chrpath cpio \
