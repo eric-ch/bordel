@@ -17,6 +17,9 @@ build_need_conf() { return 0; }
 build_main() {
     local mode=$1
 
+    # Associative array (map) of env vars -> images
+    declare -A targets
+
     # Source build_env to get access to necessary OE variables.
     . "${TOP}/${BUILD_DIR}/build_env"
 
@@ -25,24 +28,49 @@ build_main() {
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
-    while read l ; do
-        if [ -z "${l%%#*}" ]; then
+    while read image env ; do
+        if [ -z "${image%%#*}" ]; then
             continue
         fi
 
-        local entry=(${l})
-        local image="${entry[0]}"
-        local env="${entry[@]:1}"
+        # sort env variables
+        # awk converts to newlines
+        # sort command sorts by newlines
+        # xargs converts newlines back to spaces and removes empty newline
+        env=$( echo $env | awk -v RS=' ' -v ORS="\n" '{print}' | sort | xargs )
+
+        targets["$env"]="${targets[$env]} $image"
+
+    done < "${CONF_DIR}/build-manifest"
+
+    declare -a order
+
+    # stubdom must be before dom0, so just build it first
+    for env in "${!targets[@]}"; do
+        case $env in
+        *MACHINE=xenclient-stubdomain*)
+            order=("$env" "${order[@]}")
+            ;;
+        *)
+            order+=("$env")
+            ;;
+        esac
+    done
+
+    for env in "${order[@]}"; do
+        local image=${targets[$env]}
+
+        echo "Running $env bitbake $image"
 
         if [ "${mode}" = "clean" ]; then
-            eval ${env} bitbake -c cleanall "${image}"
+            eval ${env} bitbake -c cleanall ${image}
         fi
-        if ! eval ${env} bitbake "${image}" ; then
+        if ! env ${env} bitbake ${image} ; then
             echo "${env} bitbake \"${image}\" failed." >&2
             return 1
         fi
 
-    done < "${CONF_DIR}/build-manifest"
+    done
 
     popd >/dev/null
 }
