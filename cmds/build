@@ -20,13 +20,13 @@ build_main() {
     # Associative array (map) of env vars -> images
     declare -A targets
 
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null
+
     # Source build_env to get access to necessary OE variables.
     . "${TOP}/${BUILD_DIR}/build_env"
 
     # Overwrite the build timestamp.
     echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
-
-    pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
     while read image env ; do
         if [ -z "${image%%#*}" ]; then
