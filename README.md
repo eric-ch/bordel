@@ -36,3 +36,4 @@ tree from the shared build artifacts, here on referred to as the build base dire
 such an environment a top level`-b {Build Base Path}` flag must passed to bordel, this is not to be confused with the `-b` flag
 passed to the config command. *NB*: the resulting configured build directory will have absolute path
 symlinks to the shared directories in the build base directory.
+
